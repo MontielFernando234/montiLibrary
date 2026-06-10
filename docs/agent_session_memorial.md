@@ -60,3 +60,60 @@ Se implementó toda la estructura frontend siguiendo las guidelines de arquitect
   3. Cargar la `VITE_SUPABASE_ANON_KEY` real en `.env.local`.
   4. Realizar validación E2E probando flujos de registro, login y rol admin.
 - Desarrollar la épica del Catálogo (US-04 a US-07).
+
+---
+
+## Sesión 2 — 2026-06-10 12:55 a 13:09 (UTC-3)
+
+### Requerimiento Abordado
+Fix de errores de build de TypeScript (`tsc -b && vite build`) para preparar el deploy a **Netlify**.
+
+### Contexto
+Al ejecutar `pnpm run build`, el proceso `tsc -b` reportó **4 errores** que impedían la compilación:
+
+```
+1. vite.config.ts:4  — TS2307: Cannot find module 'path'
+2. vite.config.ts:11 — TS2304: Cannot find name '__dirname'
+3. UserFormModal.tsx:75 — TS2345: Argument not assignable to parameter of type 'never'
+4. UsersPage.tsx:87   — TS2345: Argument not assignable to parameter of type 'never'
+```
+
+### Análisis de Causa Raíz
+
+#### Error 1-2: `vite.config.ts` — Módulo `path` y `__dirname`
+- **Causa:** Se usaba `import path from 'path'` y `__dirname` (APIs de CommonJS/Node.js) sin tener `@types/node` instalado en las dependencias del proyecto.
+- **Contexto:** `tsconfig.node.json` (que compila `vite.config.ts`) no incluye `types: ["node"]` y el proyecto no tiene `@types/node` en `devDependencies`.
+
+#### Error 3-4: `.update()` infiere tipo `never`
+- **Causa:** La interfaz `Database` en `src/types/database.ts` no cumplía con la estructura `GenericSchema` que `@supabase/supabase-js` v2.49+ exige internamente.
+- **Detalle técnico:** `GenericSchema` (definido en `@supabase/supabase-js/dist/index.d.mts`) requiere:
+  ```ts
+  type GenericSchema = {
+    Tables: Record<string, GenericTable>;  // GenericTable requiere Relationships
+    Views: Record<string, GenericView>;
+    Functions: Record<string, GenericFunction>;
+  };
+  ```
+  La interfaz `Database` del proyecto carecía de:
+  - `Relationships: []` en la definición de la tabla `profiles`
+  - `Views: Record<string, never>` en el schema `public`
+- **Efecto:** Sin estas propiedades, TypeScript no podía resolver `Database['public']` como `GenericSchema`, colapsando la inferencia de tipos en toda la cadena `.from().update()` al tipo `never`.
+
+### Archivos Modificados
+
+| Archivo | Cambio | Motivo |
+|---------|--------|--------|
+| `vite.config.ts` | Eliminado `import path from 'path'`. Alias `@` ahora usa sintaxis nativa de Vite: `{ find: '@', replacement: '/src' }` | Evita dependencia de `@types/node` |
+| `src/types/database.ts` | Agregado `Relationships: []` en tabla `profiles` y `Views: Record<string, never>` en schema `public` | Cumplir con `GenericSchema` de supabase-js v2.49+ |
+| `src/components/admin/UserFormModal.tsx` | Sin cambios netos (se probaron casts intermedios, revertidos al resolver causa raíz) | `.update()` ahora infiere correctamente |
+| `src/pages/admin/UsersPage.tsx` | Sin cambios netos (ídem anterior) | `.update()` ahora infiere correctamente |
+
+### Decisiones Técnicas Tomadas
+
+1. **No instalar `@types/node`:** Se optó por usar la API nativa de Vite para aliases en lugar de agregar una dependencia extra. Esto mantiene el proyecto más liviano y evita exponer APIs de Node.js al código del frontend accidentalmente.
+2. **Corregir tipos en la fuente (no usar casts):** En lugar de aplicar `as any` o `as ProfileUpdate` como workaround, se corrigió la interfaz `Database` para que la inferencia de tipos funcione naturalmente. Esto asegura type-safety real en todas las operaciones de Supabase.
+
+### Próximos Pasos Pendientes
+- **Ejecutar `pnpm run build`** para confirmar que los 4 errores están resueltos.
+- **Deploy a Netlify** una vez validado el build exitoso.
+- Continuar con la épica del Catálogo (US-04 a US-07).

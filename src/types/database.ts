@@ -32,8 +32,10 @@ export interface Database {
           date_of_birth?: string | null;
           address?: string | null;
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Functions: {
       is_user_active: {
         Args: { user_id: string };
@@ -51,3 +53,4 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 export type UserRole = 'reader' | 'admin';
+
