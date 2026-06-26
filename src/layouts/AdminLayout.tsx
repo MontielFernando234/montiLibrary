@@ -43,6 +43,12 @@ export default function AdminLayout(): React.JSX.Element {
             active={isActive('/admin/users')}
           />
           <NavItem
+            to="/admin/books"
+            label="Libros"
+            icon="📖"
+            active={isActive('/admin/books')}
+          />
+          <NavItem
             to="/catalogo"
             label="Ver Catálogo"
             icon="📚"
