@@ -6,7 +6,9 @@ import { ProtectedRoute, PublicOnlyRoute } from '@/components/shared/ProtectedRo
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const CatalogoPage = lazy(() => import('@/pages/CatalogoPage'));
+const BookDetailPage = lazy(() => import('@/pages/BookDetailPage'));
 const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
+const BooksAdminPage = lazy(() => import('@/pages/admin/BooksAdminPage'));
 
 // Lazy-loaded layouts
 const ReaderLayout = lazy(() => import('@/layouts/ReaderLayout'));
@@ -27,7 +29,7 @@ function PageLoader(): React.JSX.Element {
 /**
  * Application router implementing US-17 access control:
  * - Public routes: /login, /register (redirect if authenticated)
- * - Protected routes: /catalogo (any authenticated user)
+ * - Protected routes: /catalogo, /catalogo/:id (any authenticated user)
  * - Admin routes: /admin/* (admin role required)
  */
 export function AppRouter(): React.JSX.Element {
@@ -54,6 +56,7 @@ export function AppRouter(): React.JSX.Element {
             </ProtectedRoute>
           }>
             <Route path="/catalogo" element={<CatalogoPage />} />
+            <Route path="/catalogo/:id" element={<BookDetailPage />} />
           </Route>
 
           {/* Admin routes (admin role required) */}
@@ -64,6 +67,7 @@ export function AppRouter(): React.JSX.Element {
           }>
             <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
             <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/admin/books" element={<BooksAdminPage />} />
           </Route>
 
           {/* Default redirect */}
